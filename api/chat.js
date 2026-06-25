@@ -13,6 +13,14 @@ export default async function handler(req, res) {
     if (!body) body = {};
     const { system, messages } = body;
 
+    // Prompt caching : on marque le system prompt (qui contient toute la notice)
+    // comme "cacheable". Lors des requêtes suivantes dans la fenêtre de 5 min,
+    // la notice est relue depuis le cache (~90 % moins cher) au lieu d'être
+    // retraitée intégralement à chaque message.
+    const systemBlocks = system
+      ? [{ type: "text", text: system, cache_control: { type: "ephemeral" } }]
+      : undefined;
+
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -23,7 +31,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 1000,
-        system: system,
+        system: systemBlocks,
         messages: messages,
       }),
     });
